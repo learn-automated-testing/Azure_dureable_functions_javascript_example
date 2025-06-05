@@ -1,0 +1,14 @@
+{
+  "name": "azure_dureable_functions_javascript_example",
+  "version": "1.0.0",
+  "description": "",
+  "scripts": {
+    "start": "func start",
+    "test": "echo \"No tests yet...\""
+  },
+  "dependencies": {
+    "@azure/functions": "^4.0.0",
+    "durable-functions": "^3.1.0"
+  },
+  "main": "src/{index.js,functions/*.js}"
+}
