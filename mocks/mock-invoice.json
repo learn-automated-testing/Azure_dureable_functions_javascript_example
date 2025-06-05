@@ -1,0 +1,32 @@
+{
+    "invoiceId": "INV-2024-001",
+    "vendorName": "Tech Supplies Inc",
+    "invoiceDate": "2024-03-20",
+    "dueDate": "2024-04-20",
+    "totalAmount": 1500.00,
+    "currency": "USD",
+    "lineItems": [
+        {
+            "itemId": "ITEM-001",
+            "description": "Office Supplies",
+            "quantity": 10,
+            "unitPrice": 50.00,
+            "total": 500.00
+        },
+        {
+            "itemId": "ITEM-002",
+            "description": "Software License",
+            "quantity": 1,
+            "unitPrice": 1000.00,
+            "total": 1000.00
+        }
+    ],
+    "paymentTerms": "Net 30",
+    "shippingAddress": {
+        "street": "123 Business Ave",
+        "city": "Tech City",
+        "state": "CA",
+        "zipCode": "94105",
+        "country": "USA"
+    }
+} 
