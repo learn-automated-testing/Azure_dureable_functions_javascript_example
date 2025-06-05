@@ -8,7 +8,9 @@
   },
   "dependencies": {
     "@azure/functions": "^4.0.0",
-    "durable-functions": "^3.0.0-alpha.5"
+    "@azure/storage-blob": "^12.27.0",
+    "durable-functions": "^3.0.0-alpha.5",
+    "pdfkit": "^0.17.1"
   },
   "main": "src/{index.js,functions/*.js}"
 }

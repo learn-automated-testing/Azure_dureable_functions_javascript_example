@@ -1,6 +1,8 @@
 const { app } = require('@azure/functions');
 const df = require('durable-functions');
 const mockInvoice = require('../../mocks/mock-invoice.json');
+const PDFDocument = require('pdfkit');
+const { BlobServiceClient } = require('@azure/storage-blob');
 
 // Activity to fetch the mock invoice
 df.app.activity('FetchInvoice', {
@@ -16,14 +18,75 @@ df.app.activity('FetchInvoice', {
     }
 });
 
-// Activity to process the invoice
-df.app.activity('ProcessInvoice', {
+// Activity to generate PDF and store in Azure Storage
+df.app.activity('GenerateAndStorePDF', {
     handler: async (input) => {
-        return {
-            success: true,
-            data: input,
-            processedAt: new Date().toISOString()
-        };
+        try {
+            // Create a new PDF document
+            const doc = new PDFDocument();
+            const chunks = [];
+
+            // Collect PDF chunks
+            doc.on('data', chunk => chunks.push(chunk));
+            
+            // Add content to PDF
+            doc.fontSize(25).text('INVOICE', { align: 'center' });
+            doc.moveDown();
+            
+            // Add invoice details
+            doc.fontSize(12)
+                .text(`Invoice ID: ${input.invoiceId}`)
+                .text(`Vendor: ${input.vendorName}`)
+                .text(`Date: ${input.invoiceDate}`)
+                .text(`Due Date: ${input.dueDate}`)
+                .text(`Payment Terms: ${input.paymentTerms}`)
+                .moveDown();
+
+            // Add shipping address
+            doc.text('Shipping Address:')
+                .text(`${input.shippingAddress.street}`)
+                .text(`${input.shippingAddress.city}, ${input.shippingAddress.state} ${input.shippingAddress.zipCode}`)
+                .text(input.shippingAddress.country)
+                .moveDown();
+
+            // Add line items
+            doc.text('Line Items:').moveDown();
+            input.lineItems.forEach(item => {
+                doc.text(`${item.description} - Quantity: ${item.quantity} - Unit Price: $${item.unitPrice} - Total: $${item.total}`);
+            });
+            
+            // Add total
+            doc.moveDown()
+                .text(`Total Amount: $${input.totalAmount} ${input.currency}`, { align: 'right' });
+
+            // Finalize PDF
+            doc.end();
+
+            // Convert chunks to buffer
+            const pdfBuffer = Buffer.concat(chunks);
+
+            // Upload to Azure Storage
+            const blobServiceClient = BlobServiceClient.fromConnectionString(process.env.AzureWebJobsStorage);
+            const containerClient = blobServiceClient.getContainerClient('invoices');
+            await containerClient.createIfNotExists();
+            
+            const blobName = `invoice-${input.invoiceId}-${new Date().toISOString()}.pdf`;
+            const blockBlobClient = containerClient.getBlockBlobClient(blobName);
+            
+            await blockBlobClient.upload(pdfBuffer, pdfBuffer.length);
+
+            return {
+                success: true,
+                blobName: blobName,
+                blobUrl: blockBlobClient.url,
+                processedAt: new Date().toISOString()
+            };
+        } catch (error) {
+            return {
+                success: false,
+                error: error.message
+            };
+        }
     }
 });
 
@@ -41,13 +104,20 @@ df.app.orchestration('InvoiceOrchestrator', function* (context) {
             throw new Error('Failed to fetch invoice');
         }
 
-        // Then process the invoice
-        context.log('Calling ProcessInvoice activity');
-        const processResult = yield context.df.callActivity('ProcessInvoice', fetchResult.data);
-        context.log('ProcessInvoice result:', JSON.stringify(processResult, null, 2));
-        
-        context.log('Orchestrator completed successfully');
-        return processResult;
+        // Generate PDF and store in Azure Storage
+        context.log('Generating and storing PDF');
+        const pdfResult = yield context.df.callActivity('GenerateAndStorePDF', fetchResult.data);
+        context.log('PDF generation result:', JSON.stringify(pdfResult, null, 2));
+
+        if (!pdfResult.success) {
+            throw new Error('Failed to generate and store PDF');
+        }
+
+        return {
+            success: true,
+            invoiceData: fetchResult.data,
+            pdfDetails: pdfResult
+        };
     } catch (error) {
         context.log('Error in orchestrator:', error);
         throw error;
