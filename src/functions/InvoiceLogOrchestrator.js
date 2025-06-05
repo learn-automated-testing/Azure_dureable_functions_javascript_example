@@ -5,8 +5,8 @@ const PDFDocument = require('pdfkit');
 const { BlobServiceClient } = require('@azure/storage-blob');
 
 // Activity to fetch the mock invoice
-df.app.activity('FetchInvoice', {
-    handler: async () => {
+const FetchInvoice = {
+    handler: async (context) => {
         // Simulate some processing time
         await new Promise(resolve => setTimeout(resolve, 1000));
         
@@ -16,18 +16,26 @@ df.app.activity('FetchInvoice', {
             timestamp: new Date().toISOString()
         };
     }
-});
+};
 
 // Activity to generate PDF and store in Azure Storage
-df.app.activity('GenerateAndStorePDF', {
-    handler: async (input) => {
+const GenerateAndStorePDF = {
+    handler: async (input, context) => {
         try {
             // Create a new PDF document
             const doc = new PDFDocument();
             const chunks = [];
 
-            // Collect PDF chunks
-            doc.on('data', chunk => chunks.push(chunk));
+            if (!input.invoiceId) {
+                throw new Error('Invalid invoice: invoiceId is required');
+            }
+
+            // Create a promise to collect all chunks
+            const pdfPromise = new Promise((resolve, reject) => {
+                doc.on('data', chunk => chunks.push(chunk));
+                doc.on('end', () => resolve(Buffer.concat(chunks)));
+                doc.on('error', reject);
+            });
             
             // Add content to PDF
             doc.fontSize(25).text('INVOICE', { align: 'center' });
@@ -62,8 +70,8 @@ df.app.activity('GenerateAndStorePDF', {
             // Finalize PDF
             doc.end();
 
-            // Convert chunks to buffer
-            const pdfBuffer = Buffer.concat(chunks);
+            // Wait for PDF to be generated
+            const pdfBuffer = await pdfPromise;
 
             // Upload to Azure Storage
             const blobServiceClient = BlobServiceClient.fromConnectionString(process.env.AzureWebJobsStorage);
@@ -82,13 +90,18 @@ df.app.activity('GenerateAndStorePDF', {
                 processedAt: new Date().toISOString()
             };
         } catch (error) {
+            console.error('Error generating PDF:', error);
             return {
                 success: false,
                 error: error.message
             };
         }
     }
-});
+};
+
+// Register activities
+df.app.activity('FetchInvoice', FetchInvoice);
+df.app.activity('GenerateAndStorePDF', GenerateAndStorePDF);
 
 // Orchestrator that coordinates the activities
 df.app.orchestration('InvoiceOrchestrator', function* (context) {
@@ -177,3 +190,9 @@ app.http('GetInvoiceStatus', {
         };
     },
 });
+
+// Export for testing
+module.exports = {
+    FetchInvoice,
+    GenerateAndStorePDF
+};

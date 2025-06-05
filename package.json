@@ -4,13 +4,32 @@
   "description": "",
   "scripts": {
     "start": "func start",
-    "test": "echo \"No tests yet...\""
+    "test": "jest",
+    "test:watch": "jest --watch"
   },
   "dependencies": {
     "@azure/functions": "^4.0.0",
     "@azure/storage-blob": "^12.27.0",
     "durable-functions": "^3.0.0-alpha.5",
+    "events": "^3.3.0",
     "pdfkit": "^0.17.1"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.12",
+    "jest": "^29.7.0"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "testMatch": [
+      "**/__tests__/**/*.test.js"
+    ],
+    "collectCoverage": true,
+    "coverageDirectory": "coverage",
+    "coverageReporters": [
+      "text",
+      "lcov"
+    ],
+    "verbose": true
   },
   "main": "src/{index.js,functions/*.js}"
 }
