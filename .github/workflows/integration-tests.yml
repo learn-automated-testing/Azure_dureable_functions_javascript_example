@@ -12,31 +12,31 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v3
+      - uses: actions/checkout@v3
 
-    - name: Set up Node.js
-      uses: actions/setup-node@v3
-      with:
-        node-version: '18'
-        cache: 'npm'
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+          cache: 'npm'
 
-    - name: Install dependencies
-      run: npm ci
+      - name: Install dependencies
+        run: npm ci
 
-    - name: Run unit tests
-      run: npm test -- --testPathIgnorePatterns=integration
-      env:
-        NODE_ENV: 'test'
+      - name: Run unit tests
+        run: npm test -- --testPathIgnorePatterns=integration
+        env:
+          NODE_ENV: 'test'
 
-    - name: Upload test results
-      if: always()
-      uses: actions/upload-artifact@v3
-      with:
-        name: unit-test-results
-        path: |
-          coverage/
-          .jest-cache/
-        if-no-files-found: error
+      - name: Upload unit test results
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: unit-test-results
+          path: |
+            coverage/
+            .jest-cache/
+          if-no-files-found: warn
 
   integration-tests:
     name: Integration Tests
@@ -44,57 +44,51 @@ jobs:
     runs-on: ubuntu-latest
 
     services:
-      # Azurite service container
       azurite:
         image: mcr.microsoft.com/azure-storage/azurite
         ports:
-          - 10000:10000 # Blob service
-          - 10001:10001 # Queue service
-          - 10002:10002 # Table service
-        options: >-
-          --health-cmd "curl -f http://localhost:10000/devstoreaccount1?sv=2018-03-28&ss=b&srt=sco&sp=rwdlac&se=2023-01-01T00:00:00Z&st=2022-01-01T00:00:00Z&spr=https&sig=test"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
+          - 10000:10000
+          - 10001:10001
+          - 10002:10002
 
     steps:
-    - uses: actions/checkout@v3
+      - uses: actions/checkout@v3
 
-    - name: Set up Node.js
-      uses: actions/setup-node@v3
-      with:
-        node-version: '20'
-        cache: 'npm'
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+          cache: 'npm'
 
-    - name: Install dependencies
-      run: npm ci
+      - name: Install dependencies
+        run: npm ci
 
-    - name: Install Azurite CLI
-      run: npm install -g azurite
+      - name: Wait for Azurite to be ready
+        run: |
+          for i in {1..20}; do
+            nc -z localhost 10000 && echo "Azurite is up!" && break
+            echo "Waiting for Azurite..."
+            sleep 2
+          done
 
-    - name: Start Azurite
-      run: |
-        azurite --silent --location /tmp/azurite --debug /tmp/azurite/debug.log &
-        sleep 5 # Give Azurite time to start
+      - name: Start Azure Functions Host
+        run: |
+          npm start &
+          sleep 10 # Adjust if you need more time for startup
 
-    - name: Start Azure Functions
-      run: |
-        npm start &
-        sleep 10 # Give Functions host time to start
+      - name: Run integration tests
+        run: npm test -- --testPathPattern=integration
+        env:
+          AzureWebJobsStorage: 'UseDevelopmentStorage=true'
+          FUNCTIONS_WORKER_RUNTIME: 'node'
+          NODE_ENV: 'test'
 
-    - name: Run integration tests
-      run: npm test -- src/functions/__tests__/InvoiceLogOrchestrator.integration.test.js
-      env:
-        AzureWebJobsStorage: 'UseDevelopmentStorage=true'
-        FUNCTIONS_WORKER_RUNTIME: 'node'
-        NODE_ENV: 'test'
-
-    - name: Upload test results
-      if: always()
-      uses: actions/upload-artifact@v3
-      with:
-        name: integration-test-results
-        path: |
-          coverage/
-          .jest-cache/
-        if-no-files-found: error 
+      - name: Upload integration test results
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: integration-test-results
+          path: |
+            coverage/
+            .jest-cache/
+          if-no-files-found: warn
