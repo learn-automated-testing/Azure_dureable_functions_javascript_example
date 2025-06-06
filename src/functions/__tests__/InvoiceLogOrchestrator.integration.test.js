@@ -2,31 +2,36 @@ const { BlobServiceClient } = require('@azure/storage-blob');
 const axios = require('axios');
 const mockInvoice = require('../../../mocks/mock-invoice.json');
 
-// Set up Azurite connection string for testing
+// TODO: Fix the connection string - it should use Azurite's default connection string
 process.env.AzureWebJobsStorage = 'UseDevelopmentStorage=true';
 
 describe('Invoice Processing Integration Tests', () => {
     let blobServiceClient;
     let containerClient;
+    // TODO: Fix the base URL - it should match your local Azure Functions runtime port
     const baseUrl = 'http://localhost:7071/api';
 
     beforeAll(async () => {
+        // TODO: Add error handling for container creation
         blobServiceClient = BlobServiceClient.fromConnectionString(process.env.AzureWebJobsStorage);
         containerClient = blobServiceClient.getContainerClient('invoices');
         await containerClient.createIfNotExists();
     });
 
     afterAll(async () => {
+        // TODO: Add error handling for container deletion
         await containerClient.delete();
     });
 
     beforeEach(async () => {
+        // TODO: Add error handling for blob cleanup
         for await (const blob of containerClient.listBlobsFlat()) {
             await containerClient.deleteBlob(blob.name);
         }
     });
 
     const waitForCompletion = async (instanceId, maxAttempts = 10) => {
+        // TODO: Fix the polling logic - it should handle timeouts better
         let status, attempts = 0;
         while (attempts < maxAttempts) {
             const statusResponse = await axios.get(`${baseUrl}/orchestrators/status/${instanceId}`);
@@ -40,6 +45,7 @@ describe('Invoice Processing Integration Tests', () => {
 
     describe('End-to-End Invoice Processing', () => {
         it('should process a normal invoice (customerId: 0) and generate PDF', async () => {
+            // TODO: Fix the test - it's not properly validating the PDF content
             const startResponse = await axios.post(`${baseUrl}/invoice/start`, { customerId: 0 });
             expect(startResponse.status).toBe(202);
             
@@ -55,6 +61,7 @@ describe('Invoice Processing Integration Tests', () => {
         });
 
         it('should process high-value invoice (customerId: 1) with approval and generate PDF', async () => {
+            // TODO: Fix the test - it's not properly testing the approval flow
             const startResponse = await axios.post(`${baseUrl}/invoice/start`, { customerId: 1 });
             expect(startResponse.status).toBe(202);
             
@@ -72,6 +79,7 @@ describe('Invoice Processing Integration Tests', () => {
         });
 
         it('should reject invoice from rejected vendor (customerId: 2)', async () => {
+            // TODO: Fix the test - it's not properly testing the rejection flow
             const startResponse = await axios.post(`${baseUrl}/invoice/start`, { customerId: 2 });
             expect(startResponse.status).toBe(202);
             
@@ -88,6 +96,7 @@ describe('Invoice Processing Integration Tests', () => {
         });
 
         it('should handle invalid invoice data (customerId: 3)', async () => {
+            // TODO: Fix the test - it's not properly testing error handling
             const startResponse = await axios.post(`${baseUrl}/invoice/start`, { customerId: 3 });
             expect(startResponse.status).toBe(202);
             
@@ -103,6 +112,7 @@ describe('Invoice Processing Integration Tests', () => {
         });
 
         it('should handle missing customerId gracefully', async () => {
+            // TODO: Fix the test - it's not properly testing the default behavior
             const startResponse = await axios.post(`${baseUrl}/invoice/start`, {});
             expect(startResponse.status).toBe(202);
             
@@ -118,6 +128,7 @@ describe('Invoice Processing Integration Tests', () => {
         });
 
         it('should handle malformed request body by defaulting to normal invoice', async () => {
+            // TODO: Fix the test - it's not properly testing error handling for malformed requests
             const startResponse = await axios.post(`${baseUrl}/invoice/start`, 'invalid json', {
                 headers: { 'Content-Type': 'application/json' }
             });
@@ -134,5 +145,9 @@ describe('Invoice Processing Integration Tests', () => {
             expect(blobs.length).toBe(1);
             expect(blobs[0].name).toContain('INV-NORMAL');
         });
+
+        // TODO: Add a test for concurrent invoice processing
+        // TODO: Add a test for retry behavior
+        // TODO: Add a test for timeout handling
     });
 });
