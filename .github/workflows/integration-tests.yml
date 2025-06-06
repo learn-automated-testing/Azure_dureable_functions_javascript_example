@@ -59,6 +59,9 @@ jobs:
         with:
           node-version: '20'
           cache: 'npm'
+      
+      - name: Install Azure Functions Core Tools
+        run: npm install -g azure-functions-core-tools@4 --unsafe-perm true
 
       - name: Install dependencies
         run: npm ci
@@ -73,8 +76,27 @@ jobs:
 
       - name: Start Azure Functions Host
         run: |
-          npm start &
-          sleep 10 # Adjust if you need more time for startup
+          # Create a local.settings.json file
+          echo '{
+            "IsEncrypted": false,
+            "Values": {
+              "AzureWebJobsStorage": "UseDevelopmentStorage=true",
+              "FUNCTIONS_WORKER_RUNTIME": "node"
+            }
+          }' > local.settings.json
+          
+          # Start the Functions host with Node.js runtime
+          func start --no-build --port 7071 --node &
+          
+          # Wait for the Functions host to be ready
+          for i in {1..30}; do
+            if curl -s http://localhost:7071/api/health > /dev/null; then
+              echo "Functions host is up!"
+              break
+            fi
+            echo "Waiting for Functions host..."
+            sleep 2
+          done
 
       - name: Run integration tests
         run: npm test -- --testPathPattern=integration
