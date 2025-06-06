@@ -1,0 +1,13 @@
+{
+  "invoiceId": "INV-REJECTED",
+  "vendorName": "Rejected Vendor",
+  "totalAmount": 20000,
+  "currency": "USD",
+  "lineItems": [
+    {"description": "Rejected Item", "quantity": 1, "unitPrice": 20000, "total": 20000}
+  ],
+  "shippingAddress": {
+    "street": "No Way", "city": "Rejectville", "state": "NY", "zipCode": "12345", "country": "US"
+  },
+  "contactEmail": "rejected@example.com"
+}

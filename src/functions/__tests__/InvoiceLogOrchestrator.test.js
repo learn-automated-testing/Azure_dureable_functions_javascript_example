@@ -1,5 +1,3 @@
-
-
 const { app } = require('@azure/functions');
 const df = require('durable-functions');
 const mockInvoice = require('../../../mocks/mock-invoice.json');
@@ -74,10 +72,51 @@ describe('Invoice Processing Tests', () => {
 
     describe('FetchInvoice Activity', () => {
         it('should return mock invoice data', async () => {
-            const result = await FetchInvoice.handler(context);
+            const testContext = {
+                log: jest.fn()
+            };
+            const result = await FetchInvoice.handler({ customerId: 0 }, testContext);
             
             expect(result.success).toBe(true);
-            expect(result.data).toEqual(mockInvoice);
+            expect(result.data).toBeDefined();
+            expect(result.data.invoiceId).toBe('INV-NORMAL');
+            expect(result.timestamp).toBeDefined();
+        });
+
+        it('should handle high-value invoice', async () => {
+            const testContext = {
+                log: jest.fn()
+            };
+            const result = await FetchInvoice.handler({ customerId: 1 }, testContext);
+            
+            expect(result.success).toBe(true);
+            expect(result.data).toBeDefined();
+            expect(result.data.invoiceId).toBe('INV-HIGH');
+            expect(result.data.totalAmount).toBe(20000);
+            expect(result.timestamp).toBeDefined();
+        });
+
+        it('should handle rejected vendor', async () => {
+            const testContext = {
+                log: jest.fn()
+            };
+            const result = await FetchInvoice.handler({ customerId: 2 }, testContext);
+            
+            expect(result.success).toBe(true);
+            expect(result.data).toBeDefined();
+            expect(result.data.vendorName).toBe('Rejected Vendor');
+            expect(result.timestamp).toBeDefined();
+        });
+
+        it('should handle invalid invoice', async () => {
+            const testContext = {
+                log: jest.fn()
+            };
+            const result = await FetchInvoice.handler({ customerId: 3 }, testContext);
+            
+            expect(result.success).toBe(true);
+            expect(result.data).toBeDefined();
+            expect(result.data.invoiceId).toBeNull();
             expect(result.timestamp).toBeDefined();
         });
     });

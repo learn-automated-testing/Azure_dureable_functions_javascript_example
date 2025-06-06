@@ -1,0 +1,13 @@
+{
+  "invoiceId": "INV-HIGH",
+  "vendorName": "Big Vendor",
+  "totalAmount": 20000,
+  "currency": "USD",
+  "lineItems": [
+    {"description": "Expensive Item", "quantity": 2, "unitPrice": 10000, "total": 20000}
+  ],
+  "shippingAddress": {
+    "street": "1 Millionaires Row", "city": "Moneytown", "state": "CA", "zipCode": "90001", "country": "US"
+  },
+  "contactEmail": "highvalue@example.com"
+}

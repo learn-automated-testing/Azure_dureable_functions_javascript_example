@@ -1,0 +1,14 @@
+{
+  "invoiceId": "INV-NORMAL",
+  "vendorName": "Normal Vendor",
+  "totalAmount": 1000,
+  "currency": "USD",
+  "lineItems": [
+    {"description": "Widget", "quantity": 1, "unitPrice": 1000, "total": 1000}
+  ],
+  "shippingAddress": {
+    "street": "123 Main St", "city": "Town", "state": "TS", "zipCode": "11111", "country": "US"
+  },
+  "contactEmail": "normal@example.com"
+}
+

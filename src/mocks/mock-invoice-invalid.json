@@ -1,0 +1,11 @@
+{
+  "invoiceId": null,
+  "vendorName": "Invalid Vendor",
+  "totalAmount": 1000,
+  "currency": "USD",
+  "lineItems": [],
+  "shippingAddress": {
+    "street": "Broken Blvd", "city": "Error", "state": "ER", "zipCode": "00000", "country": "US"
+  },
+  "contactEmail": "invalid@example.com"
+}
