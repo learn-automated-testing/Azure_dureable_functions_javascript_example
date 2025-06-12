@@ -16,9 +16,9 @@ describe('Invoice Processing Integration Tests', () => {
         await containerClient.createIfNotExists();
     });
 
-    afterAll(async () => {
-        await containerClient.delete();
-    });
+     afterAll(async () => {
+         await containerClient.delete();
+     });
 
     beforeEach(async () => {
         for await (const blob of containerClient.listBlobsFlat()) {
